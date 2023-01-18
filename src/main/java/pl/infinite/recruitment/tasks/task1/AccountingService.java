@@ -9,9 +9,12 @@ public class AccountingService {
 
 	private InvoiceService invoiceService;
 
+	private final Cache<String, Invoice> invoiceCache;
+
 	public AccountingService() {
 		InvoiceRepository repository = new SomeSlowInvoiceRepository();
 		this.invoiceService = new InvoiceService(repository);
+		this.invoiceCache = new InvoiceCache(); // TODO: replace with DI injection
 	}
 
 	/**
@@ -19,7 +22,14 @@ public class AccountingService {
 	 * @param invoiceNumber
 	 */
 	public void process(String invoiceNumber){
-		Invoice invoice = invoiceService.getInvoice(invoiceNumber);
+		Invoice invoice = invoiceCache.hasValue(invoiceNumber)
+				? invoiceCache.get(invoiceNumber)
+				: invoiceCache.put(invoiceNumber, invoiceService.getInvoice(invoiceNumber));
 		// do something with this invoice
+	}
+
+	// TODO: call this method using some scheduler to periodically clear the cache
+	public void schedule() {
+		invoiceCache.clear();
 	}
 }
